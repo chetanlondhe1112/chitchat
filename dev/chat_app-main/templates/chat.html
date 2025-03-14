@@ -13,7 +13,7 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css"
     />
   </head>
-  <body style="height: 50vh; display: flex; flex-direction: column">
+  <body style="height: 100vh; display: flex; flex-direction: column">
     <style>
       .profile-icon {
         color: #12151a;
@@ -24,8 +24,8 @@
       }
 
       #chatbox {
-        /* border-radius: 10px; */
-        background-color: #f8f9fa;
+        border-radius: 10px;
+        background-color:#435f7a;
         overflow-y: auto;
         /*height: calc(50vh - 90px);*/
         padding: 10px;
@@ -48,8 +48,8 @@
       }
 
       .chat-message.receiver {
-        background-color: #435f7a;
-        color: white;
+        background-color: #ffffff;
+        color:  #435f7a;
         margin-right: auto;
         text-align: left;
       }
@@ -120,7 +120,7 @@
         <!-- User List Sidebar (4 Columns) -->
         <div class="col-3 sidebar p-3 chats">
           <h5 class="mb-3 text-white">Chats</h5>
-          <div class="contacts" style="overflow-y: scroll;">
+          <div class="contacts" >
             {% for item in user_last_messages %}
             <a
               href="{% url 'chat' item.user.username %}"
@@ -209,11 +209,12 @@
             </form>
           </div>
 
+          
           <!-- Chatbox -->
-          <div id="chatbox" class="chatbox flex-fill p-3">
+          <div id="chatbox" class="chatbox flex-fill p-3" >
             {% if chats %} {% for message in chats %}
             <div
-              class="chat-message {% if message.sender == request.user %} sender {% else %} receiver {% endif %}"
+              class="chat-message {% if message.sender == request.user %} sender {% else %} receiver {% endif %}" 
             >
               <span>{{ message.content }}</span>
             </div>
@@ -225,6 +226,15 @@
           <!-- Message Input -->
           <div class="chat-input p-3">
             <div class="input-group">
+              <div class="input-group-append">
+                <button
+                  id="askai_submit_button"
+                  class="btn btn-primary"
+                  type="button"
+                >
+                  Ask AI
+                </button>
+              </div>
               <input
                 type="text"
                 id="my_input"
@@ -281,6 +291,91 @@
           document.querySelector("#submit_button").click();
         }
       };
+
+      // Function to handle Ask AI button click
+      /*
+      document.querySelector("#askai_submit_button").onclick = async function (e) {
+        var aiInput = document.querySelector("#my_input").value;
+
+        if (aiInput.length == 0) {
+          alert("Add some input first or press the Ask AI button!");
+        } else {
+          try {
+            const formData = new FormData();
+            formData.append('text_question', aiInput);
+            formData.append('requestor', "{{ room_name }}");
+
+            const response = await fetch('http://127.0.0.1:8000/chatbot/', {
+              method: 'POST',
+              body: formData,
+            });
+
+            const result = await response.json();
+            chatSocket.send(
+              JSON.stringify({
+                message: result,
+                username: "{{ request.user.username }}",
+                room_name: "{{ room_name }}",
+              })
+            );
+            document.querySelector("#my_input").value = ""; // Clear input field after sending
+          } catch (error) {
+            console.error("Error:", error);
+          }
+        }
+      };
+      */
+      document.querySelector("#askai_submit_button").onclick = async function (e) {
+        var aiInput = document.querySelector("#my_input").value;
+    
+        if (aiInput.length == 0) {
+            alert("Add some input first or press the Ask AI button!");
+        } else {
+            try {
+                chatSocket.send(
+                  JSON.stringify({
+                    message: aiInput,
+                    username: "{{ request.user.username }}",
+                    room_name: "{{ room_name }}",
+                  })
+                );
+                const formData = new FormData();
+                formData.append('text_question', aiInput);
+                formData.append('requestor', "{{ room_name }}");
+    
+                console.log("Sending request to FastAPI with input:", aiInput);
+                
+                const response = await fetch('http://127.0.0.1:8000/chatbot/', {
+                    method: 'POST',
+                    body: formData,
+                });
+    
+                console.log("Response received from FastAPI:", response);
+    
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+    
+                const result = await response.json();
+                console.log("Result parsed from JSON:", result);
+                const messageText = result.result.response;
+                chatSocket.send(
+                    JSON.stringify({
+                        message: messageText,
+                        username: "{{ request.user.username }}",
+                        room_name: "{{ room_name }}",
+                    })
+                );
+    
+                console.log("Message sent to chatSocket with result:", result);
+    
+                document.querySelector("#my_input").value = ""; // Clear input field after sending
+            } catch (error) {
+                console.error("Error:", error);
+            }
+        }
+      };
+    
 
       document.querySelector("#submit_button").onclick = function (e) {
         var messageInput = document.querySelector("#my_input").value;
